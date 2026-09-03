@@ -37,3 +37,14 @@ Run this checklist before making the repository public and before each tagged pu
 - [ ] Public documentation describes capabilities accurately and does not expose confidential implementation details.
 - [ ] The repository owner has selected an approved license if third-party reuse/contributions are intended.
 - [ ] Trademark/branding use is approved.
+
+## Repository-host controls
+
+For GitHub, enable before announcing the repository:
+
+- [ ] Secret scanning and push protection.
+- [ ] Dependabot alerts and security updates.
+- [ ] Code scanning/CodeQL.
+- [ ] Branch protection or rulesets for `main` with pull-request review and required CI checks.
+- [ ] Private vulnerability reporting/security advisories if available.
+- [ ] Restrict Actions permissions to read-only by default; grant job-specific permissions only where required.
