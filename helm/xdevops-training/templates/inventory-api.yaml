@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-api
+  labels: {app: inventory-api, app.kubernetes.io/part-of: xdevops-training}
+spec:
+  replicas: {{ .Values.replicaCount.inventoryApi }}
+  selector: {matchLabels: {app: inventory-api}}
+  template:
+    metadata:
+      labels: {app: inventory-api, environment: {{ .Values.global.environment | quote }}}
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: inventory-api
+          image: {{ include "xdevops-training.image" (list . "inventory-api") | quote }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports: [{name: http, containerPort: 8080}]
+          env:
+            - {name: ENVIRONMENT, value: {{ .Values.global.environment | quote }}}
+            - {name: FAULT_MODE, value: {{ .Values.inventoryApi.faultMode | quote }}}
+            - {name: FAULT_MEMORY_CHUNK_MB, value: {{ .Values.inventoryApi.faultMemoryChunkMb | quote }}}
+            - {name: FAULT_MEMORY_INTERVAL_SECONDS, value: {{ .Values.inventoryApi.faultMemoryIntervalSeconds | quote }}}
+          readinessProbe: {httpGet: {path: /ready, port: http}, initialDelaySeconds: 3, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /health, port: http}, initialDelaySeconds: 10, periodSeconds: 10}
+          resources: {{- toYaml .Values.resources.inventoryApi | nindent 12 }}
+          securityContext: {allowPrivilegeEscalation: false, runAsNonRoot: true, readOnlyRootFilesystem: true, capabilities: {drop: ["ALL"]}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-api
+  labels: {app: inventory-api}
+spec:
+  selector: {app: inventory-api}
+  ports: [{name: http, port: 80, targetPort: http}]

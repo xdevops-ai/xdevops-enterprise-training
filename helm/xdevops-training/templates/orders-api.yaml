@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-api
+  labels: {app: orders-api, app.kubernetes.io/part-of: xdevops-training}
+spec:
+  replicas: {{ .Values.replicaCount.ordersApi }}
+  selector: {matchLabels: {app: orders-api}}
+  template:
+    metadata:
+      labels: {app: orders-api, environment: {{ .Values.global.environment | quote }}}
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: orders-api
+          image: {{ include "xdevops-training.image" (list . "orders-api") | quote }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports: [{name: http, containerPort: 8080}]
+          env:
+            - {name: ENVIRONMENT, value: {{ .Values.global.environment | quote }}}
+            - name: DB_HOST
+              valueFrom: {secretKeyRef: {name: {{ .Values.postgres.existingSecret }}, key: host}}
+            - name: DB_NAME
+              valueFrom: {secretKeyRef: {name: {{ .Values.postgres.existingSecret }}, key: database}}
+            - name: DB_USER
+              valueFrom: {secretKeyRef: {name: {{ .Values.postgres.existingSecret }}, key: username}}
+            - name: DB_PASSWORD
+              valueFrom: {secretKeyRef: {name: {{ .Values.postgres.existingSecret }}, key: password}}
+            - {name: DB_SSL_MODE, value: "verify-full"}
+            - {name: DB_POOL_SIZE, value: {{ .Values.ordersApi.dbPoolSize | quote }}}
+            - {name: DEPENDENCY_TIMEOUT_SECONDS, value: {{ .Values.ordersApi.dependencyTimeoutSeconds | quote }}}
+            - {name: PAYMENTS_URL, value: "http://payments-api"}
+            - {name: INVENTORY_URL, value: "http://inventory-api"}
+          readinessProbe: {httpGet: {path: /ready, port: http}, initialDelaySeconds: 3, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /health, port: http}, initialDelaySeconds: 10, periodSeconds: 10}
+          resources: {{- toYaml .Values.resources.ordersApi | nindent 12 }}
+          securityContext: {allowPrivilegeEscalation: false, runAsNonRoot: true, readOnlyRootFilesystem: true, capabilities: {drop: ["ALL"]}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders-api
+  labels: {app: orders-api}
+spec:
+  selector: {app: orders-api}
+  ports: [{name: http, port: 80, targetPort: http}]

@@ -1,0 +1,48 @@
+# Terraform runtime/generated files
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+terraform.tfvars
+crash.log
+infrastructure/terraform/environments/training/backend.tf
+
+# Python/local runtime
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Credentials / local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+*.kubeconfig
+kubeconfig
+.azure/
+.aws/
+.kube/
+
+# Local IDE / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Generated training artifacts
+.training-image-tag
+.training-images.tsv
+xdevops-training-dlp-fixture.txt
+
+# Packaging
+*.zip
+*.tgz
+*.tar.gz

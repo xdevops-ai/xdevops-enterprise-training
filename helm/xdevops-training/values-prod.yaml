@@ -1,0 +1,5 @@
+global:
+  environment: prod
+
+loadGenerator:
+  mode: busy

@@ -1,0 +1,26 @@
+subscription_id = "00000000-0000-0000-0000-000000000000"
+prefix          = "xdevops-demo"
+location        = "westeurope"
+expires_on      = "REPLACE-WITH-YYYY-MM-DD"
+
+# REQUIRED: Microsoft Entra group allowed to administer AKS.
+aks_admin_group_object_ids = [
+  "11111111-1111-1111-1111-111111111111"
+]
+
+# Recommended when the XDevOps runtime/trainer has stable public egress IPs.
+# Leave empty only after an explicit connectivity/security decision.
+aks_private_cluster_enabled = false
+# For a public API server, set approved trainer/XDevOps egress CIDRs. Prefer private cluster when connectivity permits.
+aks_api_server_authorized_ip_ranges = []
+# If the cluster API is public, replace [] with the approved trainer/XDevOps egress CIDR(s).
+# The default Terraform guard blocks a public API without an allowlist.
+allow_public_api_without_authorized_ip_ranges = false
+
+# Enterprise course baseline. Use Free only for non-critical rehearsal if cost is preferred over SLA.
+aks_sku_tier = "Standard"
+
+extra_tags = {
+  workshop = "public-demo"
+  purpose  = "enterprise-training"
+}

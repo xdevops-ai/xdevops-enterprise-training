@@ -1,0 +1,29 @@
+{{- if .Values.loadGenerator.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: load-generator
+  labels: {app: load-generator, app.kubernetes.io/part-of: xdevops-training}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: load-generator}}
+  template:
+    metadata:
+      labels: {app: load-generator, environment: {{ .Values.global.environment | quote }}}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: load-generator
+          image: {{ include "xdevops-training.image" (list . "load-generator") | quote }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          env:
+            - {name: CUSTOMER_URL, value: "http://customer-api"}
+            - {name: ORDERS_URL, value: "http://orders-api"}
+            - {name: LOAD_MODE, value: {{ .Values.loadGenerator.mode | quote }}}
+          resources:
+            requests: {cpu: 25m, memory: 48Mi}
+            limits: {cpu: 300m, memory: 128Mi}
+          securityContext: {allowPrivilegeEscalation: false, runAsNonRoot: true, readOnlyRootFilesystem: true, capabilities: {drop: ["ALL"]}}
+{{- end }}

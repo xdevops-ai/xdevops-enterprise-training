@@ -1,0 +1,11 @@
+global:
+  environment: stage
+
+replicaCount:
+  customerApi: 2
+  ordersApi: 1
+  paymentsApi: 1
+  inventoryApi: 1
+
+loadGenerator:
+  mode: normal

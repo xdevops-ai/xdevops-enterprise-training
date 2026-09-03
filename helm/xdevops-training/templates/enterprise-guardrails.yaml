@@ -1,0 +1,172 @@
+{{- if .Values.guardrails.enabled }}
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: xdevops-training-quota
+  labels: {app.kubernetes.io/part-of: xdevops-training}
+spec:
+  hard:
+    requests.cpu: {{ .Values.guardrails.quota.requestsCpu | quote }}
+    requests.memory: {{ .Values.guardrails.quota.requestsMemory | quote }}
+    limits.cpu: {{ .Values.guardrails.quota.limitsCpu | quote }}
+    limits.memory: {{ .Values.guardrails.quota.limitsMemory | quote }}
+    pods: {{ .Values.guardrails.quota.pods | quote }}
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: xdevops-training-limits
+  labels: {app.kubernetes.io/part-of: xdevops-training}
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 25m
+        memory: 32Mi
+      default:
+        cpu: 500m
+        memory: 256Mi
+{{- end }}
+{{- if .Values.networkPolicy.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  labels: {app.kubernetes.io/part-of: xdevops-training}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  labels: {app.kubernetes.io/part-of: xdevops-training}
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - {protocol: UDP, port: 53}
+        - {protocol: TCP, port: 53}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-load-generator-egress
+  labels: {app.kubernetes.io/part-of: xdevops-training}
+spec:
+  podSelector:
+    matchLabels: {app: load-generator}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values: [customer-api, orders-api]
+      ports:
+        - {protocol: TCP, port: 8080}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-load-generator-ingress
+  labels: {app.kubernetes.io/part-of: xdevops-training}
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values: [customer-api, orders-api]
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {app: load-generator}
+      ports:
+        - {protocol: TCP, port: 8080}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-orders-dependencies-egress
+  labels: {app.kubernetes.io/part-of: xdevops-training}
+spec:
+  podSelector:
+    matchLabels: {app: orders-api}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values: [payments-api, inventory-api]
+      ports:
+        - {protocol: TCP, port: 8080}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-orders-dependencies-ingress
+  labels: {app.kubernetes.io/part-of: xdevops-training}
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values: [payments-api, inventory-api]
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {app: orders-api}
+      ports:
+        - {protocol: TCP, port: 8080}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-metrics-scrape
+  labels: {app.kubernetes.io/part-of: xdevops-training}
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values: [customer-api, orders-api, payments-api, inventory-api]
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              training.xdevops.ai/metrics-access: "true"
+      ports:
+        - {protocol: TCP, port: 8080}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-postgresql
+  labels: {app.kubernetes.io/part-of: xdevops-training}
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values: [customer-api, orders-api, db-init]
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: {{ .Values.networkPolicy.postgresSubnetCidr | quote }}
+      ports:
+        - {protocol: TCP, port: 5432}
+{{- end }}

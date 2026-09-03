@@ -1,0 +1,15 @@
+{{- if .Values.pdb.enabled }}
+{{- range $name := list "customer-api" "orders-api" "payments-api" "inventory-api" }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ $name }}
+  labels: {app.kubernetes.io/part-of: xdevops-training}
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: {{ $name }}
+---
+{{- end }}
+{{- end }}

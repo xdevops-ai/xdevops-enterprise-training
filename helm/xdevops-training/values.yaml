@@ -1,0 +1,78 @@
+global:
+  imageRegistry: ""
+  imageTag: "build-required"
+  imagePullPolicy: IfNotPresent
+  environment: training
+
+replicaCount:
+  customerApi: 3
+  ordersApi: 2
+  paymentsApi: 2
+  inventoryApi: 2
+
+resources:
+  customerApi:
+    requests: {cpu: 50m, memory: 96Mi}
+    limits: {cpu: 500m, memory: 256Mi}
+  ordersApi:
+    requests: {cpu: 50m, memory: 96Mi}
+    limits: {cpu: 500m, memory: 256Mi}
+  paymentsApi:
+    requests: {cpu: 25m, memory: 64Mi}
+    limits: {cpu: 250m, memory: 128Mi}
+  inventoryApi:
+    requests: {cpu: 25m, memory: 64Mi}
+    limits: {cpu: 250m, memory: 128Mi}
+
+customerApi:
+  dbPoolSize: 10
+  dbPoolAcquireTimeoutSeconds: "2.0"
+  dbConnectTimeoutSeconds: "2.0"
+  dbQueryLatencySeconds: "0.10"
+
+ordersApi:
+  dbPoolSize: 8
+  dependencyTimeoutSeconds: "1.0"
+
+paymentsApi:
+  faultMode: normal
+  baseLatencyMs: "80"
+  faultLatencyMs: "3000"
+
+inventoryApi:
+  faultMode: normal
+  faultMemoryChunkMb: "8"
+  faultMemoryIntervalSeconds: "1"
+
+loadGenerator:
+  enabled: true
+  mode: normal
+
+postgres:
+  existingSecret: xdevops-training-db
+  adminSecret: xdevops-training-db-admin
+
+serviceMonitor:
+  enabled: false
+  interval: 15s
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/path: /metrics
+  prometheus.io/port: "8080"
+
+guardrails:
+  enabled: true
+  quota:
+    requestsCpu: "4"
+    requestsMemory: 4Gi
+    limitsCpu: "8"
+    limitsMemory: 8Gi
+    pods: "50"
+
+networkPolicy:
+  enabled: true
+  postgresSubnetCidr: "10.42.4.0/24"
+
+pdb:
+  enabled: true

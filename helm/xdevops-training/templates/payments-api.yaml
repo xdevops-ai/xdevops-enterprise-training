@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payments-api
+  labels: {app: payments-api, app.kubernetes.io/part-of: xdevops-training}
+spec:
+  replicas: {{ .Values.replicaCount.paymentsApi }}
+  selector: {matchLabels: {app: payments-api}}
+  template:
+    metadata:
+      labels: {app: payments-api, environment: {{ .Values.global.environment | quote }}}
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: payments-api
+          image: {{ include "xdevops-training.image" (list . "payments-api") | quote }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports: [{name: http, containerPort: 8080}]
+          env:
+            - {name: ENVIRONMENT, value: {{ .Values.global.environment | quote }}}
+            - {name: FAULT_MODE, value: {{ .Values.paymentsApi.faultMode | quote }}}
+            - {name: BASE_LATENCY_MS, value: {{ .Values.paymentsApi.baseLatencyMs | quote }}}
+            - {name: FAULT_LATENCY_MS, value: {{ .Values.paymentsApi.faultLatencyMs | quote }}}
+          readinessProbe: {httpGet: {path: /ready, port: http}, initialDelaySeconds: 3, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /health, port: http}, initialDelaySeconds: 10, periodSeconds: 10}
+          resources: {{- toYaml .Values.resources.paymentsApi | nindent 12 }}
+          securityContext: {allowPrivilegeEscalation: false, runAsNonRoot: true, readOnlyRootFilesystem: true, capabilities: {drop: ["ALL"]}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payments-api
+  labels: {app: payments-api}
+spec:
+  selector: {app: payments-api}
+  ports: [{name: http, port: 80, targetPort: http}]
